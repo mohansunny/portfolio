@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Database, FileLineChart, Zap, ShieldAlert, Laptop, CheckCircle, ArrowRight, Star, AlertCircle, Calendar } from 'lucide-react';
 import { TimelineChapter } from '../types';
@@ -92,7 +92,58 @@ export default function Journey() {
     }
   ];
 
-  const [activeChapter, setActiveChapter] = useState<number>(5);
+  const [activeChapter, setActiveChapter] = useState<number>(1);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const container = document.getElementById('journey');
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const totalScrollableHeight = rect.height - window.innerHeight;
+
+      if (totalScrollableHeight <= 0) return;
+
+      // distance scrolled past the top of the viewport
+      const scrolled = -rect.top;
+      
+      // Calculate active progress between 0 and 1
+      const progress = Math.max(0, Math.min(0.999, scrolled / totalScrollableHeight));
+      
+      const index = Math.floor(progress * chapters.length);
+      const chapterNum = chapters[index].chapterNum;
+      setActiveChapter(chapterNum);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [chapters.length]);
+
+  const handleChapterClick = (chapterNum: number) => {
+    const container = document.getElementById('journey');
+    if (!container) {
+      setActiveChapter(chapterNum);
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const containerTop = window.scrollY + rect.top;
+    const totalScrollableHeight = rect.height - window.innerHeight;
+
+    if (totalScrollableHeight > 0) {
+      const targetIndex = chapterNum - 1;
+      const chapterRange = totalScrollableHeight / chapters.length;
+      // Scroll to the comfort threshold of the chapter range to activate it smoothly
+      const targetScroll = containerTop + (targetIndex * chapterRange) + (chapterRange * 0.25);
+      
+      window.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+      });
+    } else {
+      setActiveChapter(chapterNum);
+    }
+  };
 
   const getChapterIcon = (num: number) => {
     switch (num) {
@@ -121,8 +172,8 @@ export default function Journey() {
   };
 
   return (
-    <section id="journey" className="py-24 px-4 md:px-8 border-t border-slate-900 bg-slate-950/20 relative">
-      <div className="max-w-6xl mx-auto">
+    <section id="journey" className="relative min-h-[140vh] md:min-h-[260vh] border-t border-slate-900 bg-slate-950/20">
+      <div className="max-w-6xl mx-auto py-24 px-4 md:px-8 md:sticky md:top-24">
         
         {/* Section Header */}
         <div className="mb-16 text-center md:text-left">
@@ -147,7 +198,7 @@ export default function Journey() {
               return (
                 <button
                   key={ch.chapterNum}
-                  onClick={() => setActiveChapter(ch.chapterNum)}
+                  onClick={() => handleChapterClick(ch.chapterNum)}
                   className={`flex items-start text-left gap-4 p-4 rounded-xl transition-all duration-300 relative cursor-pointer group ${
                     isActive 
                       ? 'bg-gradient-to-r from-amber-400/10 to-transparent border-l-4 border-l-amber-400 bg-slate-900/60' 
